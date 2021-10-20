@@ -8,6 +8,7 @@
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
 
+#include <QKeyEvent>
 #include <QMouseEvent>
 
 #include <QMatrix4x4>
@@ -193,6 +194,59 @@ private:
   QVector<QPoint> m_samples;
 };
 
+class MoveState final
+{
+public:
+  void handleKey(int key, bool state)
+  {
+    switch (key) {
+      case Qt::Key_Up:
+      case Qt::Key_W:
+        m_up = state;
+        break;
+      case Qt::Key_Left:
+      case Qt::Key_A:
+        m_left = state;
+        break;
+      case Qt::Key_Down:
+      case Qt::Key_S:
+        m_down = state;
+        break;
+      case Qt::Key_Right:
+      case Qt::Key_D:
+        m_right = state;
+        break;
+    }
+  }
+
+  bool isMoving() const noexcept { return m_up || m_left || m_down || m_right; }
+
+  QVector2D moveVector() const
+  {
+    QVector2D v(0, 0);
+
+    if (m_up)
+      v[1] += 1;
+
+    if (m_left)
+      v[0] -= 1;
+
+    if (m_down)
+      v[1] -= 1;
+
+    if (m_right)
+      v[0] += 1;
+
+    return v.normalized();
+  }
+
+private:
+  bool m_up = false;
+  bool m_left = false;
+  bool m_down = false;
+  bool m_right = false;
+};
+
 } // namespace
 
 class QPointsViewPrivate final
@@ -215,6 +269,8 @@ class QPointsViewPrivate final
   int m_yMouse = 0;
 
   std::unique_ptr<DragMotion> m_dragMotion;
+
+  MoveState m_moveState;
 
   QPointsViewPrivate(QPointsView* parent)
     : m_inputTimer(parent)
@@ -301,11 +357,19 @@ QPointsView::updateInput()
 
     m_self->m_dragMotion->addMouseSample(m_self->m_xMouse, m_self->m_yMouse);
 
-    if (m_self->m_camera && m_self->m_dragMotion->hasMotion()) {
+    const bool isDragging = m_self->m_dragMotion->hasMotion();
 
-      const QVector2D motion = m_self->m_dragMotion->getMotion(size());
+    const bool isMoving = m_self->m_moveState.isMoving();
 
-      m_self->m_camera->dragEvent(motion.x(), motion.y());
+    if (m_self->m_camera && (isDragging || isMoving)) {
+
+      const QVector2D dragMotion = m_self->m_dragMotion->getMotion(size());
+
+      m_self->m_camera->dragEvent(dragMotion.x(), dragMotion.y());
+
+      const QVector2D moveMotion = m_self->m_moveState.moveVector();
+
+      m_self->m_camera->moveEvent(moveMotion.x(), moveMotion.y());
 
       setViewMatrix(m_self->m_camera->viewMatrix());
 
@@ -344,6 +408,24 @@ QPointsView::mouseReleaseEvent(QMouseEvent* mouseEvent)
     m_self->m_dragMotion.reset();
 
   QOpenGLWidget::mouseReleaseEvent(mouseEvent);
+}
+
+void
+QPointsView::keyPressEvent(QKeyEvent* event)
+{
+  if (!event->isAutoRepeat())
+    m_self->m_moveState.handleKey(event->key(), true);
+
+  QOpenGLWidget::keyPressEvent(event);
+}
+
+void
+QPointsView::keyReleaseEvent(QKeyEvent* event)
+{
+  if (!event->isAutoRepeat())
+    m_self->m_moveState.handleKey(event->key(), false);
+
+  QOpenGLWidget::keyReleaseEvent(event);
 }
 
 void

@@ -19,6 +19,8 @@ public:
   virtual QMatrix4x4 viewMatrix() const = 0;
 
   virtual void dragEvent(float dx, float dy) = 0;
+
+  virtual void moveEvent(float dx, float dy) = 0;
 };
 
 } // namespace qpointsview

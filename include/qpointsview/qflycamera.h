@@ -16,20 +16,29 @@ public:
 
   void dragEvent(float dx, float dy) override;
 
+  void moveEvent(float dx, float dy) override;
+
   QMatrix4x4 viewMatrix() const override;
 
   void setPosition(const QVector3D& pos) { m_position = pos; }
 
-  /// @param pitch The angle around the perpendicular horizontal axis, in
-  /// degrees.
-  void setPitch(float pitch);
+  void setPitch(float pitch) { m_pitch = pitch; }
 
-  /// @param yaw The angle around the vertical axis, in degrees.
-  void setYaw(float yaw);
+  void setYaw(float yaw) { m_yaw = yaw; }
 
   void setUp(const QVector3D& up) { m_up = up; }
 
+  void setMoveSpeed(float speed) { m_moveSpeed = speed; }
+
+  void setDragSpeed(float speed) { setDragSpeed(speed, speed); }
+
+  void setDragSpeed(float hSpeed, float vSpeed);
+
+  QVector3D up() const noexcept { return m_up; }
+
   QVector3D direction() const;
+
+  QVector3D right() const { return QVector3D::crossProduct(direction(), up()); }
 
 private:
   QVector3D m_position{ 0, 0, 0 };
@@ -40,7 +49,11 @@ private:
 
   float m_yaw = 0;
 
-  float m_angularSpeed = 2;
+  float m_hDragSpeed = 2;
+
+  float m_vDragSpeed = 2;
+
+  float m_moveSpeed = 1;
 };
 
 } // namespace qpointsview

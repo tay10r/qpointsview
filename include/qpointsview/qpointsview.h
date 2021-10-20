@@ -10,6 +10,7 @@ class QVector;
 
 class QMatrix4x4;
 class QMouseEvent;
+class QKeyEvent;
 
 namespace qpointsview {
 
@@ -64,6 +65,10 @@ private:
   void mouseReleaseEvent(QMouseEvent*) override;
 
   void mouseMoveEvent(QMouseEvent*) override;
+
+  void keyPressEvent(QKeyEvent*) override;
+
+  void keyReleaseEvent(QKeyEvent*) override;
 
   void updateInput();
 
