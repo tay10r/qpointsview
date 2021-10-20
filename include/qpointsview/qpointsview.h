@@ -3,60 +3,69 @@
 #ifndef QPOINTSVIEW_QPOINTSVIEW_H
 #define QPOINTSVIEW_QPOINTSVIEW_H
 
-#include <QFrame>
+#include <QOpenGLWidget>
 
 template<typename T>
 class QVector;
 
 class QMatrix4x4;
-class QVector3D;
-class QColor;
+class QMouseEvent;
 
 namespace qpointsview {
 
+class QPointColorPair;
+class QAbstractCamera;
 class QPointsViewPrivate;
 
-class QPointsView : public QFrame
+class QPointsView : public QOpenGLWidget
 {
+  Q_OBJECT
 public:
   QPointsView(QWidget* parent);
 
   ~QPointsView();
 
+  /// Assigns the camera to receive mouse and keyboard events from the points
+  /// view.
+  ///
+  /// @param camera The camera to assign the view. This widget does not take
+  ///               ownership of the pointer. The camera must remain alive until
+  ///               it is either removed from the widget or until the widget is
+  ///               destroyed.
+  void setCamera(QAbstractCamera* camera);
+
   void setPointRadius(float radiusNear, float radiusFar = 0.0f);
 
-  void setPoints(QVector<QVector3D>&& points);
-
-  void setColors(QVector<QColor>&& colors);
+  /// Uploads points into the vertex buffer to be rendered.
+  /// This function must only be called after the OpenGL context is initialized.
+  ///
+  /// @return True on success, false if the OpenGL context has not yet been
+  ///         initialized.
+  bool setPoints(const QVector<QPointColorPair>& pointColorPairs);
 
   void setViewMatrix(const QMatrix4x4& viewMatrix);
 
   void setProjectionMatrix(const QMatrix4x4& projectionMatrix);
 
-  /// This function is used to convert a set of points in world space to screen
-  /// space. This does not need to be called by the end-user. It is exposed only
-  /// for testing purposes.
-  ///
-  /// @param mvp A combination of the model, view, and projection matrices.
-  ///
-  /// @param width The width of the screen space, in pixels.
-  ///
-  /// @param height The height of the screen space, in pixels.
-  ///
-  /// @param in The points to be converted.
-  ///
-  /// @param pointCount The number of points to convert.
-  ///
-  /// @param out A pointer to a buffer of at least @p pointCount size that can
-  ///            fit the converted points.
-  ///
-  /// @return The number of points that ended up in screen space.
-  static int toScreenSpace(const QMatrix4x4& mvp,
-                           int width,
-                           int height,
-                           const QVector3D* in,
-                           int pointCount,
-                           QVector3D* out);
+signals:
+  void contextInitialized();
+
+private:
+  friend QPointsViewPrivate;
+
+  void initializeGL() override;
+
+  void paintGL() override;
+
+  void resizeGL(int, int) override;
+
+  void mousePressEvent(QMouseEvent*) override;
+
+  void mouseReleaseEvent(QMouseEvent*) override;
+
+  void mouseMoveEvent(QMouseEvent*) override;
+
+  void updateInput();
 
 private:
   QPointsViewPrivate* m_self;
