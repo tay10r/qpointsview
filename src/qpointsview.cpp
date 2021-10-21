@@ -19,6 +19,9 @@
 
 #include <cassert>
 
+#include "qwidgetcontainer.h"
+#include "qwidgetcontainerprogram.h"
+
 static void
 initResources()
 {
@@ -269,6 +272,10 @@ class QPointsViewPrivate final
 
   PointRenderer m_pointRenderer;
 
+  QWidgetContainerProgram m_widgetContainerProgram;
+
+  QVector<QWidgetContainer*> m_widgetContainers;
+
   QMatrix4x4 m_viewMatrix;
 
   QMatrix4x4 m_projectionMatrix;
@@ -296,6 +303,12 @@ class QPointsViewPrivate final
 
     m_inputTimer.start();
   }
+
+  ~QPointsViewPrivate()
+  {
+    for (QWidgetContainer* container : m_widgetContainers)
+      delete container;
+  }
 };
 
 QPointsView::QPointsView(QWidget* parent)
@@ -316,6 +329,14 @@ QPointsView::~QPointsView()
   delete m_self;
 
   doneCurrent();
+}
+
+QWidget*
+QPointsView::addWidget(QWidget* widget)
+{
+  m_self->m_widgetContainers.push_back(new QWidgetContainer(this, widget));
+
+  return widget;
 }
 
 void
@@ -343,6 +364,10 @@ QPointsView::initializeGL()
 
   m_self->m_pointRadiusMax = radiusMinMax[1];
 
+  success = m_self->m_widgetContainerProgram.init();
+
+  assert(success);
+
   m_self->m_contextInitialized = true;
 
   QTimer::singleShot(0, [this]() { emit contextInitialized(); });
@@ -368,6 +393,15 @@ QPointsView::paintGL()
   const QMatrix4x4 mvp = m_self->m_projectionMatrix * m_self->m_viewMatrix;
 
   m_self->m_pointRenderer.render(mvp);
+
+  for (QWidgetContainer* widgetContainer : m_self->m_widgetContainers) {
+
+    [[maybe_unused]] bool success = widgetContainer->paintOntoTexture();
+
+    assert(success);
+
+    m_self->m_widgetContainerProgram.render(widgetContainer, mvp);
+  }
 }
 
 void

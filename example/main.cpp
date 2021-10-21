@@ -1,5 +1,9 @@
 #include <QApplication>
+
+#include <QLabel>
+
 #include <QMainWindow>
+
 #include <QMatrix4x4>
 
 #include <qpointsview/QFlyCamera>
@@ -53,6 +57,14 @@ main(int argc, char** argv)
   qpointsview::QFlyCamera flyCamera(&pointsView);
 
   pointsView.setCamera(&flyCamera);
+
+  QLabel* label = new QLabel("A test message.", &pointsView);
+
+  label->setStyleSheet("font: 24pt");
+
+  label->hide();
+
+  pointsView.addWidget(label);
 
   mainWindow.setCentralWidget(&pointsView);
 

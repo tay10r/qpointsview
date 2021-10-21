@@ -2,15 +2,27 @@ cmake_minimum_required(VERSION 3.9.6)
 
 project(qpointsview CXX)
 
-find_package(Qt5 COMPONENTS Widgets)
+option(QPOINTSVIEW_EXAMPLE "Whether or not to build the example program." OFF)
+
+##############################################
+# Optionally validate shaders at build time. #
+##############################################
 
 find_program(GLSLANG_VALIDATOR glslangValidator)
 
 if(GLSLANG_VALIDATOR)
   add_custom_target(qpointsview_shader_validation ALL
     COMMAND ${GLSLANG_VALIDATOR} "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/render_points.vert"
-    COMMAND ${GLSLANG_VALIDATOR} "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/render_points.frag")
+    COMMAND ${GLSLANG_VALIDATOR} "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/render_points.frag"
+    COMMAND ${GLSLANG_VALIDATOR} "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/render_widget.vert"
+    COMMAND ${GLSLANG_VALIDATOR} "${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/render_widget.frag")
 endif(GLSLANG_VALIDATOR)
+
+######################
+# Build the library. #
+######################
+
+find_package(Qt5 COMPONENTS Widgets)
 
 add_library(qpointsview
   include/qpointsview/QPointsView
@@ -22,6 +34,10 @@ add_library(qpointsview
   src/qabstractcamera.cpp
   src/qpointsview.cpp
   src/qflycamera.cpp
+  src/qwidgetcontainer.h
+  src/qwidgetcontainer.cpp
+  src/qwidgetcontainerprogram.h
+  src/qwidgetcontainerprogram.cpp
   src/shaders/shaders.qrc)
 
 set_target_properties(qpointsview
@@ -39,11 +55,19 @@ target_link_libraries(qpointsview
   PUBLIC
     Qt5::Widgets)
 
-add_executable(qpointsview_bench
-  bench.cpp)
+############################
+# Add the example program. #
+############################
 
-target_link_libraries(qpointsview_bench PUBLIC qpointsview)
+if(QPOINTSVIEW_EXAMPLE)
 
-set_target_properties(qpointsview_bench
-  PROPERTIES
-    OUTPUT_NAME bench)
+  add_executable(qpointsview_example
+    example/main.cpp)
+
+  target_link_libraries(qpointsview_example PUBLIC qpointsview)
+
+  set_target_properties(qpointsview_example
+    PROPERTIES
+      OUTPUT_NAME example)
+
+endif(QPOINTSVIEW_EXAMPLE)

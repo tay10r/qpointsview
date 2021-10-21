@@ -1,6 +1,11 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
+
     <file>render_points.vert</file>
     <file>render_points.frag</file>
+
+    <file>render_widget.vert</file>
+    <file>render_widget.frag</file>
+
 </qresource>
 </RCC>
