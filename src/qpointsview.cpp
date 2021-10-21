@@ -59,6 +59,8 @@ public:
 
     m_mvpLocation = m_program.uniformLocation("mvp");
 
+    m_pointRadiusLocation = m_program.uniformLocation("pointRadius");
+
     m_positionLocation = m_program.attributeLocation("position");
 
     m_colorLocation = m_program.attributeLocation("color");
@@ -94,6 +96,8 @@ public:
 
     m_program.setUniformValue(m_mvpLocation, mvp);
 
+    m_program.setUniformValue(m_pointRadiusLocation, m_pointRadius);
+
     QOpenGLFunctions* functions = QOpenGLContext::currentContext()->functions();
 
     functions->glEnableVertexAttribArray(m_positionLocation);
@@ -103,10 +107,19 @@ public:
     functions->glVertexAttribPointer(
       m_positionLocation, 3, GL_FLOAT, GL_FALSE, bytesPerPoint, (void*)0);
 
+#if 1
     functions->glVertexAttribPointer(
       m_colorLocation, 4, GL_UNSIGNED_BYTE, GL_TRUE, bytesPerPoint, (void*)12);
+#else
+    functions->glVertexAttribIPointer(
+      m_colorLocation, 4, GL_UNSIGNED_BYTE, bytesPerPoint, (void*)12);
+#endif
+
+    assert(m_colorLocation >= 0);
 
     functions->glDrawArrays(GL_POINTS, 0, pointCount());
+
+    assert(functions->glGetError() == GL_NO_ERROR);
 
     functions->glDisableVertexAttribArray(m_colorLocation);
 
@@ -117,12 +130,7 @@ public:
     m_program.release();
   }
 
-  void setPointRadius(float near, float far)
-  {
-    m_radiusNear = near;
-
-    m_radiusFar = far;
-  }
+  void setPointRadius(float radius) { m_pointRadius = radius; }
 
   int pointCount() const
   {
@@ -137,13 +145,13 @@ public:
 private:
   int m_mvpLocation = -1;
 
+  int m_pointRadiusLocation = -1;
+
   int m_positionLocation = -1;
 
   int m_colorLocation = -1;
 
-  float m_radiusNear = 2.0f;
-
-  float m_radiusFar = 0.0f;
+  float m_pointRadius = 64.0f;
 
   QOpenGLBuffer m_pointBuffer;
 
@@ -255,6 +263,10 @@ class QPointsViewPrivate final
 
   bool m_contextInitialized = false;
 
+  float m_pointRadiusMin = 0;
+
+  float m_pointRadiusMax = 1;
+
   PointRenderer m_pointRenderer;
 
   QMatrix4x4 m_viewMatrix;
@@ -313,11 +325,23 @@ QPointsView::initializeGL()
 
   functions->glEnable(GL_DEPTH_TEST);
 
+  functions->glEnable(GL_POINT_SPRITE);
+
   functions->glEnable(GL_PROGRAM_POINT_SIZE);
+
+  functions->glEnable(GL_MULTISAMPLE);
 
   [[maybe_unused]] bool success = m_self->m_pointRenderer.init();
 
   assert(success);
+
+  float radiusMinMax[2]{ 0, 1 };
+
+  functions->glGetFloatv(GL_POINT_SIZE_RANGE, radiusMinMax);
+
+  m_self->m_pointRadiusMin = radiusMinMax[0];
+
+  m_self->m_pointRadiusMax = radiusMinMax[1];
 
   m_self->m_contextInitialized = true;
 
@@ -328,6 +352,8 @@ void
 QPointsView::resizeGL(int w, int h)
 {
   context()->functions()->glViewport(0, 0, w, h);
+
+  QTimer::singleShot(0, [this, w, h]() { emit resized(w, h); });
 }
 
 void
@@ -429,9 +455,9 @@ QPointsView::keyReleaseEvent(QKeyEvent* event)
 }
 
 void
-QPointsView::setPointRadius(float nearRadius, float farRadius)
+QPointsView::setPointRadius(float radius)
 {
-  m_self->m_pointRenderer.setPointRadius(nearRadius, farRadius);
+  m_self->m_pointRenderer.setPointRadius(radius);
 }
 
 bool

@@ -78,11 +78,18 @@ main(int argc, char** argv)
 
   // Setup projection matrix
 
-  QMatrix4x4 projMatrix;
+  auto projectionSetter = [&pointsView](int w, int h) {
+    const float aspect = float(w) / h;
 
-  projMatrix.perspective(45, 1.0f, 0.1, 100);
+    QMatrix4x4 projMatrix;
 
-  pointsView.setProjectionMatrix(projMatrix);
+    projMatrix.perspective(45, aspect, 0.1, 1000);
+
+    pointsView.setProjectionMatrix(projMatrix);
+  };
+
+  QObject::connect(
+    &pointsView, &qpointsview::QPointsView::resized, projectionSetter);
 
   return app.exec();
 }

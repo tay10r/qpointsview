@@ -35,7 +35,19 @@ public:
   ///               destroyed.
   void setCamera(QAbstractCamera* camera);
 
-  void setPointRadius(float radiusNear, float radiusFar = 0.0f);
+  void setPointRadius(float radius);
+
+  void setViewMatrix(const QMatrix4x4& viewMatrix);
+
+  void setProjectionMatrix(const QMatrix4x4& projectionMatrix);
+
+  /// @note Only after the OpenGL context has been initialized will this
+  ///       function return a valid value.
+  float getPointRadiusMin() const;
+
+  /// @note Only after the OpenGL context has been initialized will this
+  ///       function return a valid value.
+  float getPointRadiusMax() const;
 
   /// Uploads points into the vertex buffer to be rendered.
   /// This function must only be called after the OpenGL context is initialized.
@@ -44,12 +56,10 @@ public:
   ///         initialized.
   bool setPoints(const QVector<QPointColorPair>& pointColorPairs);
 
-  void setViewMatrix(const QMatrix4x4& viewMatrix);
-
-  void setProjectionMatrix(const QMatrix4x4& projectionMatrix);
-
 signals:
   void contextInitialized();
+
+  void resized(int w, int h);
 
 private:
   friend QPointsViewPrivate;
